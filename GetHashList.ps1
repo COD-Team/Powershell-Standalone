@@ -15,7 +15,7 @@
     .NOTES
     
     .LINK
-        https://github.com/COD-Team/Powershell/
+        https://github.com/COD-Team/Powershell-Standalone/
   
     .FUNCTIONALITY
         PowerShell Language
