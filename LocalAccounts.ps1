@@ -25,7 +25,7 @@ Get-LocalUser |
         $user = $_
         $PasswordLastSet = if ($null -ne $user.PasswordLastSet) {($user.PasswordLastSet).ToString('MM/dd/yyyy')} else {(get-date '01/01/2000').ToString('MM/dd/yyyy')}
         $PasswordAge = (new-timespan -start $(Get-date $PasswordLastSet) -end (get-date)).days
-        $LastLogonDate = if ($null -ne $user.LastLogondate) {($user.LastLogondate).ToString('MM/dd/yyyy')} else {(get-date '01/01/2000').ToString('MM/dd/yyyy')}
+        $LastLogonDate = if ($null -ne $user.LastLogon) {($user.LastLogon).ToString('MM/dd/yyyy')} else {(get-date '01/01/2000').ToString('MM/dd/yyyy')}
         $LogonAge = (new-timespan -start $(Get-date $LastLogonDate) -end (get-date)).days
 
         return [PSCustomObject]@{ 
