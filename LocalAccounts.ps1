@@ -10,7 +10,7 @@
     .NOTES
     
     .LINK
-        https://github.com/COD-Team/Powershell-Standalone
+        https://github.com/COD-Team
 
 #>
 #Requires -RunAsAdministrator
