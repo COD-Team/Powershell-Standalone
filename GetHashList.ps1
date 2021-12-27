@@ -10,12 +10,12 @@
         Path to Files you need to HASH and Create a File Listing
     
     .EXAMPLE
-        Command Prompt (Admin) "powershell -ExecutionPolicy Bypass -File PATH\GetHashList.ps1 "PathToBurn"
+        Command Prompt (Admin) "powershell -ExecutionPolicy Bypass -File PATH\GetHashList.ps1 "PathToHash"
 
     .NOTES
     
     .LINK
-        https://github.com/COD-Team/Powershell-Standalone/
+        https://github.com/COD-Team
   
     .FUNCTIONALITY
         PowerShell Language
