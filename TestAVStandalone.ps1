@@ -11,15 +11,31 @@
         This program can test multiple methods to verify your security suite is working as intented. 
 
         Recommend under Tasks, executing 1 at a time. 
-        
+ 
+    .OUTPUTS
+        Report found under $logPath below, default is c:\COD-Logs\COMPUTERNAME\DATETIME
+    
+    .EXAMPLE
+        1. PowerShell 5.1 Command Prompt (Admin) 
+            "powershell -Executionpolicy Bypass -File PATH\FILENAME.ps1"
+        2. Powershell 7.2.1 Command Prompt (Admin) 
+            "pwsh -Executionpolicy Bypass -File PATH\FILENAME.ps1"
+
+    .NOTES
+        Author Perkins
+        Last Update 1/7/22
+        Updated 1/7/22 Tested and Validated PowerShell 5.1 and 7.2.1
+    
+        Powershell 5 or higher
+        Run as Administrator
+    
     .FUNCTIONALITY
         PowerShell Language
+        Active Directory
     
-    .NOTES
-    
-    .LINK
-        https://github.com/COD-Team/
-
+    .Link
+        https://github.com/COD-Team
+        YouTube Video https://youtu.be/4LSMP0gj1IQ
 #>
 
 #Requires -RunAsAdministrator
@@ -30,9 +46,9 @@ $versionMinimum = [Version]'5.1.000.000'
 
 $Tasks = @(
     ,"CreateEICAR"
-    #,"DownloadEICAR.COM"
-    #,"DownloadEICAR.ZIP"
-    #,"DownloadEICAR2.ZIP"
+    #,"DownloadEICAR.COM"       # Requires Internet
+    #,"DownloadEICAR.ZIP"       # Requires Internet
+    #,"DownloadEICAR2.ZIP"      # Requires Internet
     )
 
 # Set your Log Path, can be local or a Network Share - Results CAN be different suggest running both
@@ -41,6 +57,9 @@ $logpath = "C:\COD-Logs\$env:ComputerName\$(get-date -format "yyyyMMdd-hhmmss")"
     {
           New-Item -ItemType Directory -Force -Path $logpath
     }
+
+# Added 1/7/21 PowerShell 7.2.1 Compatibility for Out-File not printing escape characters
+if ($PSVersionTable.PSVersion.major -ge 7) {$PSStyle.OutputRendering = 'PlainText'}
 
 # Master.Log will be created in the logpath defined above, change the file name if you choose. Results only let you know it's been executed. 
 $OutputFile = "$logpath\Master.log"
