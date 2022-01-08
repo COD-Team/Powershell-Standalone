@@ -1,4 +1,4 @@
-﻿<#
+<#
     .DESCRIPTION
         Script pulls information from Local Workstation.
 
@@ -6,16 +6,15 @@
         Report found under $logPath below, default is c:\COD-Logs\COMPUTERNAME\DATETIME
     
     .EXAMPLE
-        Option 1
-        1. Command Prompt (Admin) "powershell -Executionpolicy Bypass -File PATH\Standalone.ps1 PARAMETER"
-
-        Option 2
-        1. Run the set-executionpolicy unrestricted or Set-ExecutionPolicy RemoteSigned
-        2. Run Standalone.ps1 as administrator
+        1. PowerShell 5.1 Command Prompt (Admin) 
+            "powershell -Executionpolicy Bypass -File PATH\FILENAME.ps1"
+        2. Powershell 7.2.1 Command Prompt (Admin) 
+            "pwsh -Executionpolicy Bypass -File PATH\FILENAME.ps1"
 
     .NOTES
-        Author Perk
-        Last Update 12/27/21
+        Author Perkins
+        Last Update 1/7/22
+        Updated 1/7/22 Tested and Validated PowerShell 5.1 and 7.2.1
     
         Powershell 5 or higher
         Run as Administrator
@@ -25,14 +24,17 @@
         Active Directory
     
     .Link
-    https://github.com/COD-Team
-    YouTube Video https://youtu.be/4LSMP0gj1IQ
-    See README.md
+        https://github.com/COD-Team
+        YouTube Video https://youtu.be/4LSMP0gj1IQ
 #>
-
-
-
+<#
 $Tasks = @(
+    ,""
+    ,"LaunchNotepad"  
+)
+#>
+$Tasks = @(
+    ,"GetEvaluateSTIG"
     ,"GetWindowsVersion"
     ,"GetPowerShellVersion"
     ,"GetExecutionPolicy"
@@ -67,12 +69,11 @@ $Tasks = @(
     ,"GetHost"
     ,"GetAuditPol"
     ,"GetStoppedServices"
-    ,"GetEventLog"
     ,"GetDependentServices"
     ,"GetDNSCache"
-    #,"GetSecEdit"
-    #,"GetComputerInfo"
-    #,"GetSystemInfo"
+    ,"GetSecEdit"
+    ,"GetComputerInfo"
+    ,"GetSystemInfo"
     #,"GetDriverHash"
     #,"GetHiddenFiles"
     ,"LaunchNotepad"        
@@ -85,17 +86,28 @@ $versionMinimum = [Version]'5.1.000.000'
     { throw "This script requires PowerShell $versionMinimum" }
 
 ## VARIABLES
-$ComputerDomain = (Get-WmiObject win32_computersystem).domain
+# Gets Domain Name
+# Added 1/7/21 PowerShell 7.2.1 Compatibility Get-WmiObject not compatible with PowerShell 7.2.1
+#$DomainName = (Get-WmiObject win32_computersystem).domain
+$DomainName = (Get-CimInstance Win32_ComputerSystem).Domain
+
+# Returns ComputerName
 $ComputerName = $env:computername
 
+# Logpath where reports will be generated, UNC path is acceptable.
 $logpath = "C:\COD-Logs\$ComputerName\$(get-date -format "yyyyMMdd-hhmmss")"
 #$logpath = "\\SERVERNAME\SHARENAME\COD-Logs\$ComputerName\$(get-date -format "yyyyMMdd-hhmmss")"
     If(!(test-path $logpath))
     {
           New-Item -ItemType Directory -Force -Path $logpath
     }
+# Added 1/7/21 PowerShell 7.2.1 Compatibility for Out-File not printing escape characters
+if ($PSVersionTable.PSVersion.major -ge 7) {$PSStyle.OutputRendering = 'PlainText'}
 
+# Name and Location of the Master Report File
 $OutputFile = "$logpath\Master.log"
+
+# Counter Used fir Write-Progress
 $Counter = 0
 
 ## End of Variables
@@ -106,16 +118,70 @@ $Counter = 0
 
 
 Write-Output "Computer Name: "| out-file -Append $OutputFile
-    if ((Get-WmiObject win32_computersystem).partofdomain -eq $true) 
+    if ((Get-CimInstance win32_computersystem).partofdomain -eq $true) 
     {
-        Write-Output "$ComputerName.$ComputerDomain is Joined to a Domain."| out-file -Append $OutputFile
+        Write-Output "$ComputerName.$DomainName is Joined to a Domain."| out-file -Append $OutputFile
         write-host -fore green "Script is Running"
         } else {
-        Write-Output "$computername is NOT Joined to a Domain but part of $ComputerDomain." | out-file -Append $OutputFile
+        Write-Output "$computername is NOT Joined to a Domain but part of $DomainName." | out-file -Append $OutputFile
     }
 
 Measure-Command {   
 ###################################################################################################################################################################
+Function GetEvaluateSTIG 
+{
+    If (-Not(Test-Path -Path "$localpath\evaluate-stig-master")) {
+        Write-Output "Unable to Locate Evaluate-STIG.ps1 in path $localpath\evaluate-stig-master\PowerShell\Src\Evaluate-STIG\" | out-file -Append $OutputFile
+    }
+    Else {
+    Try {If (Get-ChildItem Cert:\LocalMachine\Root | Where-Object Thumbprint -eq 'D73CA91102A2204A36459ED32213B467D7CE97FB') {Write-Host 'DoD Root CA 3 certificate is already imported to Local Machine\Root store.' -ForegroundColor Cyan} Else {Import-Certificate $localpath\evaluate-stig-master\PowerShell\Src\Evaluate-STIG\Prerequisites\Certificates\DoD_Root_CA_3.cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null; Write-Host 'DoD_Root_CA_3.cer successfully imported to Local Machine\Root store.' -ForegroundColor Green}} Catch {Write-Host $_.Exception.Message -ForegroundColor Red}
+    Try {If (Get-ChildItem Cert:\LocalMachine\CA | Where-Object Thumbprint -eq '1907FC2B223EE0301B45745BDB59AAD90FE7C5D7') {Write-Host 'DOD ID CA-59 certificate is already imported to Local Machine\CA.' -ForegroundColor Cyan} Else {Import-Certificate $localpath\evaluate-stig-master\PowerShell\Src\Evaluate-STIG\Prerequisites\Certificates\DOD_ID_CA-59.cer -CertStoreLocation Cert:\LocalMachine\CA | Out-Null; Write-Host 'DOD_ID_CA-59.cer successfully imported to Local Machine\CA.' -ForegroundColor Green}} Catch {Write-Host $_.Exception.Message -ForegroundColor Red}
+    Try {If (Get-ChildItem Cert:\LocalMachine\TrustedPublisher | Where-Object Thumbprint -eq 'D95F944E33528DC23BEE8672D6D38DA35E6F0017') {Write-Host 'CS.NSWCCD.001 certificate is already imported to Local Machine\Trusted Publishers store.' -ForegroundColor Cyan} Else {Import-Certificate $localpath\evaluate-stig-master\PowerShell\Src\Evaluate-STIG\Prerequisites\Certificates\CS.NSWCCD.001.cer -CertStoreLocation Cert:\LocalMachine\TrustedPublisher | Out-Null; Write-Host 'CS.NSWCCD.001.cer successfully imported to Local Machine\Trusted Publishers store.' -ForegroundColor Green}} Catch {Write-Host $_.Exception.Message -ForegroundColor Red}
+
+    & "$localpath\evaluate-stig-master\PowerShell\Src\Evaluate-STIG\Evaluate-STIG.ps1" -ScanType Classified -OutputPath $logpath
+
+    # Run Summary Report from Evaluate STIG
+    GetStigSummary
+
+    # Run Detail Open Items Report from Evaluate STIG
+    GetSTIGDetail
+    
+    }
+}
+Function GetStigSummary 
+    {
+    $reportpath = "$logpath\$env:computername\SummaryReport.xml"
+    [xml]$xmlData = Get-Content -Path $reportpath
+    $output = $xmlData.Summary.Checklists.ChildNodes | ForEach-Object {
+        [pscustomobject]@{
+            STIG = $_.STIG
+            CAT_I_O = $_.CAT_I.Open
+            CAT_II_O = $_.CAT_II.Open
+            CAT_III_O = $_.CAT_III.Open
+         }
+    }
+    Write-Output "GetStigSummary from Evaluate STIG" | out-file -Append $OutputFile
+    $output | Out-File -Append $OutputFile
+    }
+
+Function GetSTIGDetail 
+    {
+    $reportpath = "$logpath\$env:computername\SummaryReport.xml"
+    [xml]$xmlData = Get-Content -Path $reportpath
+    $objs = @()
+    $ChkFiles = $xmlData.SelectNodes("//Checklist//Vuln[@Status = 'Open']")
+
+        foreach ($ChkFile in $ChkFiles)
+        {
+            $obj = new-object psobject -prop @{
+                CklFile = $ChkFile.ParentNode.ParentNode.STIG
+                RuleTitle =  "(" + $ChkFile.ID +") " + $ChkFile.RuleTitle
+            } 
+            $objs += $obj;
+        }  
+        Write-Output "GetStigDetails from Evaluate STIG" | out-file -Append $OutputFile
+        $objs | Out-File -Append $OutputFile
+    }
     Function GetFirewallProfile
 {
     Write-Output "Firewall Profiles" | out-file -Append $OutputFile
@@ -123,12 +189,12 @@ Measure-Command {
 }
 Function GetDiskInfo 
 {
-    Write-Output "Disk Information, Check for Disk - IsBoot = Yes then Partition should be GPT. If not GPT secureboot more than likly is off " | out-file -Append $OutputFile
+    Write-Output "Disk Information, Check for Disk - IsBoot = Yes then Partition should be GPT. If not GPT secureboot more than likely is off " | out-file -Append $OutputFile
     Get-Disk | Select-Object DiskNumber, PartitionStyle, ProvisionintType, OperationalStatus,HealthStatus, BusType, BootFromDisk, FriendlyName, IsBoot, Manufacture, Model, NumberofPartitions, SerialNumber| Format-List | out-file -Append $OutputFile
 }
 Function GetScheduledTasks 
 {
-    Write-Output "Get-ScheduledTask - Are there tasks not Approved and not used in a Closed Enviroment?" | out-file -Append $OutputFile
+    Write-Output "Get-ScheduledTask - Are there tasks not Approved and not used in a Closed Environment?" | out-file -Append $OutputFile
     Get-ScheduledTask | out-file -Append $OutputFile
 }
 Function GetWindowsVersion 
@@ -140,17 +206,17 @@ Function GetWindowsVersion
 }	
 Function GetExecutionPolicy 
 {
-    Write-Output "Show the Powershell Execution Policy" | out-file -Append $OutputFile
+    Write-Output "Show the PowerShell Execution Policy" | out-file -Append $OutputFile
     Get-ExecutionPolicy -List | out-file -Append $OutputFile
 }
 Function GetPowerShellVersion 
 {
-    Write-Output "Powershell Version" | out-file -Append $OutputFile
+    Write-Output "PowerShell Version" | out-file -Append $OutputFile
     $PSVersionTable.PSVersion | out-file -Append $OutputFile
 }
 Function GetSystemInfo 
 {
-    Write-Output System Informatio | out-file -Append $OutputFile
+    Write-Output System Information | out-file -Append $OutputFile
     systeminfo | out-file -Append $OutputFile
 }
 Function GetPSDrives 
@@ -257,11 +323,6 @@ Function GetUSBActivity
         Write-Output "Show Recent USB Activity in REG USB" | out-file -Append $OutputFile
         Get-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Enum\USB\*\* | Select-Object DeviceDesc,Service,Mfg | out-file -Append $OutputFile
     }
-}	
-Function GetEventLog 
-{
-    Write-Output "Event Log Warning or Error Messages" | out-file -Append $OutputFile
-    Get-Eventlog -LogName system -Newest 25 | Select-Object -Property TimeGenderated, Source, EntryType, Message | Where-Object {$_.EntryType -eq "warning" -or $_.EntryType -eq "error"}  | out-file -Append $OutputFile
 }	
 Function GetDNSCache 
 {
@@ -394,7 +455,7 @@ Function GetBitlocker
 {
     if (((Get-WindowsEdition -Online) | Select-Object Edition) -notmatch 'Standard' )
     {
-        $disk= Get-WMIObject -Query "Select * From win32_logicaldisk Where DriveType = '3'"
+        $disk= Get-CimInstance -Query "Select * From win32_logicaldisk Where DriveType = '3'"
         foreach ( $drive in $disk ) 
         {
             Write-Output "Get-BitLockerVolume -MountPoint $drive.Name" | out-file -Append $OutputFile
@@ -408,7 +469,7 @@ Function GetBitlocker
 }
 Function GetHiddenFiles 
 {
-    $disk= Get-WMIObject -Query "Select * From win32_logicaldisk Where DriveType = '3'"
+    $disk= Get-CimInstance -Query "Select * From win32_logicaldisk Where DriveType = '3'"
     foreach ( $drive in $disk )
             {
                 $drivename = $drive.Name +"\"
@@ -432,7 +493,7 @@ Function GetAuditPol
     $arguments = "/get /category:*"
     $stdout = "$logpath\$(get-date -format "yyyyMMdd-hhmmss").log"
 
-        Write-Output "AuditPol.exe /get /category:* if STIG compliant, Account Managment / Security Group Managment for Success and Failure" | out-file -Append $OutputFile
+        Write-Output "AuditPol.exe /get /category:* if STIG compliant, Account Management / Security Group Management for Success and Failure" | out-file -Append $OutputFile
         Start-Process $auditpol $arguments -NoNewWindow -Wait -RedirectStandardOutput $stdout
         Get-Content $stdout | Out-File -Append $OutputFile
         Remove-Item $stdout
