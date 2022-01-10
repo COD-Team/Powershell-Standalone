@@ -101,6 +101,10 @@ $logpath = "C:\COD-Logs\$ComputerName\$(get-date -format "yyyyMMdd-hhmmss")"
     {
           New-Item -ItemType Directory -Force -Path $logpath
     }
+
+# Returns local path, allows loading .\tools
+$localpath = Get-Location
+
 # Added 1/7/21 PowerShell 7.2.1 Compatibility for Out-File not printing escape characters
 if ($PSVersionTable.PSVersion.major -ge 7) {$PSStyle.OutputRendering = 'PlainText'}
 
